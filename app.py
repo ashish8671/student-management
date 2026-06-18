@@ -1,5 +1,6 @@
 from fastapi import FastAPI, status, HTTPException, Depends
 from fastapi.security import OAuth2PasswordRequestForm
+from fastapi.responses import RedirectResponse
 from schemas import (
     UserAuth,
     UserOut,
@@ -21,6 +22,10 @@ app = FastAPI(title="Student Management System")
 
 users_db = {}
 students_db = {}
+
+@app.get("/", include_in_schema=False)
+async def root():
+    return RedirectResponse(url="/docs")
 
 @app.post("/signup", response_model=UserOut)
 async def create_user(data: UserAuth):
