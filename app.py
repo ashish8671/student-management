@@ -1,6 +1,7 @@
 from fastapi import FastAPI, status, HTTPException, Depends
 from fastapi.security import OAuth2PasswordRequestForm
 from fastapi.responses import RedirectResponse
+from fastapi.middleware.cors import CORSMiddleware
 from schemas import (
     UserAuth,
     UserOut,
@@ -19,6 +20,14 @@ from utils import (
 from uuid import uuid4
 
 app = FastAPI(title="Student Management System")
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # allow all origins
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 users_db = {}
 students_db = {}

@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Student Management System</title>
+    <style>
+        body {
+            font-family: Arial;
+            max-width: 800px;
+            margin: 20px auto;
+        }
+
+        input {
+            display: block;
+            margin: 5px 0;
+            padding: 8px;
+            width: 300px;
+        }
+
+        button {
+            padding: 8px 15px;
+            margin: 5px 0;
+        }
+
+        .box {
+            border: 1px solid #ccc;
+            padding: 15px;
+            margin-bottom: 20px;
+        }
+
+        pre {
+            background: #f4f4f4;
+            padding: 10px;
+        }
+    </style>
+</head>
+<body>
+
+<h1>Student Management System</h1>
+
+<!-- Signup -->
+
+<div class="box">
+    <h2>Signup</h2>
+
+    <input id="su_username" placeholder="Username">
+    <input id="su_email" placeholder="Email">
+    <input id="su_password" placeholder="Password">
+
+    <button onclick="signup()">Signup</button>
+</div>
+
+<!-- Login -->
+
+<div class="box">
+    <h2>Login</h2>
+
+    <input id="login_email" placeholder="Email">
+    <input id="login_password" placeholder="Password">
+
+    <button onclick="login()">Login</button>
+</div>
+
+<!-- Add Student -->
+
+<div class="box">
+    <h2>Add Student</h2>
+
+    <input id="name" placeholder="Name">
+    <input id="age" placeholder="Age">
+    <input id="course" placeholder="Course">
+    <input id="student_email" placeholder="Email">
+
+    <button onclick="addStudent()">Add Student</button>
+</div>
+
+<!-- Get Students -->
+
+<div class="box">
+    <h2>Students</h2>
+
+    <button onclick="getStudents()">Load Students</button>
+
+    <pre id="output"></pre>
+</div>
+
+<script>
+
+const BASE_URL =
+"https://student-management-ruby-three.vercel.app";
+
+let accessToken = "";
+
+async function signup() {
+
+    const response = await fetch(
+        `${BASE_URL}/signup`,
+        {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+                username: document.getElementById("su_username").value,
+                email: document.getElementById("su_email").value,
+                password: document.getElementById("su_password").value
+            })
+        }
+    );
+
+    const data = await response.json();
+
+    alert(JSON.stringify(data));
+}
+
+async function login() {
+
+    const formData = new URLSearchParams();
+
+    formData.append(
+        "username",
+        document.getElementById("login_email").value
+    );
+
+    formData.append(
+        "password",
+        document.getElementById("login_password").value
+    );
+
+    const response = await fetch(
+        `${BASE_URL}/login`,
+        {
+            method: "POST",
+            body: formData
+        }
+    );
+
+    const data = await response.json();
+
+    accessToken = data.access_token;
+
+    alert("Login Successful");
+}
+
+async function addStudent() {
+
+    const response = await fetch(
+        `${BASE_URL}/students`,
+        {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+                name: document.getElementById("name").value,
+                age: parseInt(document.getElementById("age").value),
+                course: document.getElementById("course").value,
+                email: document.getElementById("student_email").value
+            })
+        }
+    );
+
+    const data = await response.json();
+
+    alert(JSON.stringify(data));
+}
+
+async function getStudents() {
+
+    const response = await fetch(
+        `${BASE_URL}/students`
+    );
+
+    const data = await response.json();
+
+    document.getElementById("output").textContent =
+        JSON.stringify(data, null, 2);
+}
+
+</script>
+
+</body>
+</html>
