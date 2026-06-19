@@ -23,8 +23,12 @@ class StudentCreate(BaseModel):
     name: str
     age: int
     course: str
-    email: EmailStr
+    email: str
 
 
-class StudentOut(StudentCreate):
+class StudentOut(BaseModel):
     id: str
+    name: str
+    age: int
+    course: str
+    email: str

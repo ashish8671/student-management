@@ -2,6 +2,8 @@ from fastapi import FastAPI, status, HTTPException, Depends
 from fastapi.security import OAuth2PasswordRequestForm
 from fastapi.responses import RedirectResponse
 from fastapi.middleware.cors import CORSMiddleware
+from database import users_collection, students_collection
+from bson import ObjectId
 from schemas import (
     UserAuth,
     UserOut,
@@ -39,36 +41,36 @@ async def root():
 @app.post("/signup", response_model=UserOut)
 async def create_user(data: UserAuth):
 
-    user = users_db.get(data.email)
+    existing_user = users_collection.find_one(
+        {"email": data.email}
+    )
 
-    if user:
+    if existing_user:
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
+            status_code=400,
             detail="User already exists"
         )
 
     user = {
-        "id": str(uuid4()),
         "username": data.username,
         "email": data.email,
         "password": get_hashed_password(data.password)
     }
 
-    users_db[data.email] = user
+    result = users_collection.insert_one(user)
 
-    return UserOut(
-        id=user["id"],
-        username=user["username"],
-        email=user["email"]
-    )
-
+    return {
+        "id": str(result.inserted_id),
+        "username": data.username,
+        "email": data.email
+    }
 
 @app.post("/login", response_model=TokenSchema)
-async def login(
-    form_data: OAuth2PasswordRequestForm = Depends()
-):
+async def login(form_data: OAuth2PasswordRequestForm = Depends()):
 
-    user = users_db.get(form_data.username)
+    user = users_collection.find_one(
+        {"email": form_data.username}
+    )
 
     if not user:
         raise HTTPException(
@@ -91,7 +93,6 @@ async def login(
         "token_type": "bearer"
     }
 
-
 @app.get("/users", response_model=list[UserOut])
 async def get_users():
 
@@ -107,31 +108,46 @@ async def get_users():
 @app.post("/students", response_model=StudentOut)
 async def create_student(student: StudentCreate):
 
-    student_id = str(uuid4())
-
     new_student = {
-        "id": student_id,
         "name": student.name,
         "age": student.age,
         "course": student.course,
         "email": student.email
     }
 
-    students_db[student_id] = new_student
+    result = students_collection.insert_one(new_student)
 
-    return new_student
+    return {
+        "id": str(result.inserted_id),
+        "name": student.name,
+        "age": student.age,
+        "course": student.course,
+        "email": student.email
+    }
 
-
-@app.get("/students", response_model=list[StudentOut])
+@app.get("/students")
 async def get_students():
 
-    return list(students_db.values())
+    students = []
 
+    for student in students_collection.find():
 
-@app.get("/students/{student_id}", response_model=StudentOut)
+        students.append({
+            "id": str(student["_id"]),
+            "name": student["name"],
+            "age": student["age"],
+            "course": student["course"],
+            "email": student["email"]
+        })
+
+    return students
+
+@app.get("/students/{student_id}")
 async def get_student(student_id: str):
 
-    student = students_db.get(student_id)
+    student = students_collection.find_one(
+        {"_id": ObjectId(student_id)}
+    )
 
     if not student:
         raise HTTPException(
@@ -139,48 +155,51 @@ async def get_student(student_id: str):
             detail="Student not found"
         )
 
-    return student
-
-
-@app.put("/students/{student_id}", response_model=StudentOut)
+    return {
+        "id": str(student["_id"]),
+        "name": student["name"],
+        "age": student["age"],
+        "course": student["course"],
+        "email": student["email"]
+    }
+@app.put("/students/{student_id}")
 async def update_student(
     student_id: str,
     student: StudentCreate
 ):
+    result = students_collection.update_one(
+        {"_id": ObjectId(student_id)},
+        {
+            "$set": {
+                "name": student.name,
+                "age": student.age,
+                "course": student.course,
+                "email": student.email
+            }
+        }
+    )
 
-    existing_student = students_db.get(student_id)
-
-    if not existing_student:
+    if result.modified_count == 0:
         raise HTTPException(
             status_code=404,
             detail="Student not found"
         )
 
-    updated_student = {
-        "id": student_id,
-        "name": student.name,
-        "age": student.age,
-        "course": student.course,
-        "email": student.email
+    return {
+        "message": "Student updated successfully"
     }
-
-    students_db[student_id] = updated_student
-
-    return updated_student
-
-
 @app.delete("/students/{student_id}")
 async def delete_student(student_id: str):
 
-    student = students_db.get(student_id)
+    result = students_collection.delete_one(
+        {"_id": ObjectId(student_id)}
+    )
 
-    if not student:
+    if result.deleted_count == 0:
         raise HTTPException(
             status_code=404,
             detail="Student not found"
         )
-
-    del students_db[student_id]
 
     return {
         "message": "Student deleted successfully"
